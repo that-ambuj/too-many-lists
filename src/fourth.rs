@@ -57,6 +57,10 @@ impl<T> List<T> {
         }
     }
 
+    /// # Panics
+    /// This method assumes it's implementation is correct before using `unwrap()`.
+    ///
+    /// Hence, any panics caused by this function are considered bugs.
     pub fn pop_back(&mut self) -> Option<T> {
         self.tail.take().map(|old_tail| {
             if let Some(new_tail) = old_tail.borrow_mut().prev.take() {
@@ -70,6 +74,10 @@ impl<T> List<T> {
         })
     }
 
+    /// # Panics
+    /// This method assumes it's implementation is correct before using `unwrap()`.
+    ///
+    /// Hence, any panics caused by this function are considered bugs.
     pub fn pop_front(&mut self) -> Option<T> {
         self.head.take().map(|old_head| {
             if let Some(new_head) = old_head.borrow_mut().next.take() {

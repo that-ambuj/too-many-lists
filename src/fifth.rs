@@ -206,7 +206,10 @@ mod tests {
         assert_eq!(list.peek(), Some(&3));
 
         list.push(6);
-        list.peek_mut().map(|x| *x *= 10);
+
+        if let Some(x) = list.peek_mut() {
+            *x *= 10;
+        }
 
         assert_eq!(list.pop(), Some(30));
 
@@ -223,7 +226,11 @@ mod tests {
         assert_eq!(iter.next(), None);
 
         assert_eq!(list.pop(), Some(400));
-        list.peek_mut().map(|x| *x *= 10);
+
+        if let Some(x) = list.peek_mut() {
+            *x *= 10;
+        }
+
         assert!(list.peek() == Some(&5000));
         list.push(7);
     }
