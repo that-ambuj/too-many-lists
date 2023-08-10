@@ -15,7 +15,8 @@ enum Link {
 }
 
 impl List {
-    pub fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         List { head: Link::Empty }
     }
 

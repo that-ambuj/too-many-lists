@@ -20,6 +20,7 @@ struct Node<T> {
 type Link<T> = Option<Box<Node<T>>>;
 
 impl<T> List<T> {
+    #[must_use]
     pub fn new() -> Self {
         List { head: None }
     }
@@ -40,6 +41,7 @@ impl<T> List<T> {
         })
     }
 
+    #[allow(clippy::must_use_candidate)]
     pub fn peek(&self) -> Option<&T> {
         self.head.as_ref().map(|node| &node.elem)
     }
@@ -84,6 +86,7 @@ impl<'a, T> Iterator for IterMut<'a, T> {
 }
 
 impl<T> List<T> {
+    #[allow(clippy::must_use_candidate)]
     pub fn iter(&self) -> Iter<'_, T> {
         Iter {
             next: self.head.as_deref(),
@@ -162,7 +165,7 @@ mod tests {
         assert_eq!(list.peek_mut(), Some(&mut 3));
 
         if let Some(value) = list.peek_mut() {
-            *value = 42
+            *value = 42;
         }
 
         assert_eq!(list.peek(), Some(&42));

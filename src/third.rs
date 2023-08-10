@@ -16,12 +16,14 @@ pub struct Iter<'a, T> {
 }
 
 impl<T> List<T> {
+    #[must_use]
     pub fn new() -> Self {
         List { head: None }
     }
 
+    #[allow(clippy::doc_markdown, clippy::return_self_not_must_use)]
     /// Puts `elem` at the start and return a new [`List`]
-    /// Essentially, it's the `push_front` method in the DoubleIterators
+    /// Essentially, it's the `push_front` method in the `DoubleIterators`
     ///
     /// It is equivalent of adding a new head to the List
     ///
@@ -35,8 +37,9 @@ impl<T> List<T> {
         }
     }
 
+    #[allow(clippy::must_use_candidate, clippy::return_self_not_must_use)]
     /// Removes the fist element and returns the [`List`].
-    /// Essentially, it's the `pop_front` method in the DoubleIterators
+    /// Essentially, it's the `pop_front` method in the `DoubleIterators`
     ///
     /// It is equivalent of detaching the head of the List like below:
     ///
@@ -47,11 +50,13 @@ impl<T> List<T> {
         }
     }
 
+    #[allow(clippy::must_use_candidate, clippy::return_self_not_must_use)]
     /// Returns reference to the First Element (head) of the [`List`]
     pub fn head(&self) -> Option<&T> {
         self.head.as_ref().map(|node| &node.elem)
     }
 
+    #[allow(clippy::must_use_candidate, clippy::return_self_not_must_use)]
     pub fn iter(&self) -> Iter<'_, T> {
         Iter {
             next: self.head.as_deref(),
