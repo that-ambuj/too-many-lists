@@ -17,7 +17,7 @@ struct Node<T> {
 impl<T> Node<T> {
     fn new(elem: T) -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(Node {
-            elem: elem,
+            elem,
             prev: None,
             next: None,
         }))
@@ -25,6 +25,7 @@ impl<T> Node<T> {
 }
 
 impl<T> List<T> {
+    #[must_use]
     pub fn new() -> Self {
         List {
             head: None,
@@ -34,70 +35,62 @@ impl<T> List<T> {
 
     pub fn push_front(&mut self, elem: T) {
         let new_head = Node::new(elem);
-        match self.head.take() {
-            Some(old_head) => {
-                old_head.borrow_mut().prev = Some(new_head.clone());
-                new_head.borrow_mut().next = Some(old_head);
-                self.head = Some(new_head);
-            }
-            None => {
-                self.tail = Some(new_head.clone());
-                self.head = Some(new_head);
-            }
+        if let Some(old_head) = self.head.take() {
+            old_head.borrow_mut().prev = Some(new_head.clone());
+            new_head.borrow_mut().next = Some(old_head);
+            self.head = Some(new_head);
+        } else {
+            self.tail = Some(new_head.clone());
+            self.head = Some(new_head);
         }
     }
 
     pub fn push_back(&mut self, elem: T) {
         let new_tail = Node::new(elem);
-        match self.tail.take() {
-            Some(old_tail) => {
-                old_tail.borrow_mut().next = Some(new_tail.clone());
-                new_tail.borrow_mut().prev = Some(old_tail);
-                self.tail = Some(new_tail);
-            }
-            None => {
-                self.head = Some(new_tail.clone());
-                self.tail = Some(new_tail);
-            }
+        if let Some(old_tail) = self.tail.take() {
+            old_tail.borrow_mut().next = Some(new_tail.clone());
+            new_tail.borrow_mut().prev = Some(old_tail);
+            self.tail = Some(new_tail);
+        } else {
+            self.head = Some(new_tail.clone());
+            self.tail = Some(new_tail);
         }
     }
 
     pub fn pop_back(&mut self) -> Option<T> {
         self.tail.take().map(|old_tail| {
-            match old_tail.borrow_mut().prev.take() {
-                Some(new_tail) => {
-                    new_tail.borrow_mut().next.take();
-                    self.tail = Some(new_tail);
-                }
-                None => {
-                    self.head.take();
-                }
+            if let Some(new_tail) = old_tail.borrow_mut().prev.take() {
+                new_tail.borrow_mut().next.take();
+                self.tail = Some(new_tail);
+            } else {
+                self.head.take();
             }
+
             Rc::try_unwrap(old_tail).ok().unwrap().into_inner().elem
         })
     }
 
     pub fn pop_front(&mut self) -> Option<T> {
         self.head.take().map(|old_head| {
-            match old_head.borrow_mut().next.take() {
-                Some(new_head) => {
-                    new_head.borrow_mut().prev.take();
-                    self.head = Some(new_head);
-                }
-                None => {
-                    self.tail.take();
-                }
+            if let Some(new_head) = old_head.borrow_mut().next.take() {
+                new_head.borrow_mut().prev.take();
+                self.head = Some(new_head);
+            } else {
+                self.tail.take();
             }
+
             Rc::try_unwrap(old_head).ok().unwrap().into_inner().elem
         })
     }
 
+    #[allow(clippy::must_use_candidate)]
     pub fn peek_front(&self) -> Option<Ref<T>> {
         self.head
             .as_ref()
             .map(|node| Ref::map(node.borrow(), |node| &node.elem))
     }
 
+    #[allow(clippy::must_use_candidate)]
     pub fn peek_back(&self) -> Option<Ref<T>> {
         self.tail
             .as_ref()
@@ -115,15 +108,20 @@ impl<T> List<T> {
             .as_ref()
             .map(|node| RefMut::map(node.borrow_mut(), |node| &mut node.elem))
     }
-
-    pub fn into_iter(self) -> IntoIter<T> {
-        IntoIter(self)
-    }
 }
 
 impl<T> Drop for List<T> {
     fn drop(&mut self) {
         while self.pop_front().is_some() {}
+    }
+}
+
+impl<T> IntoIterator for List<T> {
+    type Item = T;
+    type IntoIter = IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter(self)
     }
 }
 
@@ -140,6 +138,12 @@ impl<T> Iterator for IntoIter<T> {
 impl<T> DoubleEndedIterator for IntoIter<T> {
     fn next_back(&mut self) -> Option<T> {
         self.0.pop_back()
+    }
+}
+
+impl<T> Default for List<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

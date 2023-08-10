@@ -22,7 +22,8 @@ impl<T> List<T> {
     }
 
     #[allow(clippy::doc_markdown, clippy::return_self_not_must_use)]
-    /// Puts `elem` at the start and return a new [`List`]
+    /// Puts `elem` at the start and return a new [`List`].
+    ///
     /// Essentially, it's the `push_front` method in the `DoubleIterators`
     ///
     /// It is equivalent of adding a new head to the List
@@ -39,6 +40,7 @@ impl<T> List<T> {
 
     #[allow(clippy::must_use_candidate, clippy::return_self_not_must_use)]
     /// Removes the fist element and returns the [`List`].
+    ///
     /// Essentially, it's the `pop_front` method in the `DoubleIterators`
     ///
     /// It is equivalent of detaching the head of the List like below:
