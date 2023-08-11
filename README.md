@@ -1,6 +1,6 @@
 # Too Many Linked Lists
 
-Written in Rust<sup>&reg;</sup>
+Written in Rust&reg;
 
 Linked Lists are a data structure that are known to be memory inefficient, unweildy(in implementation)
 and impractical outside of a CS classroom but they are great for learning low-level stuff like how to manage pointers
