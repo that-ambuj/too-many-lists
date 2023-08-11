@@ -34,16 +34,16 @@ impl<T> LinkedList<T> {
 
     pub fn push_front(&mut self, elem: T) {
         unsafe {
-            let new = NonNull::new_unchecked(Box::into_raw(Box::new(Node {
+            let mut new = NonNull::new_unchecked(Box::into_raw(Box::new(Node {
                 front: None,
                 back: None,
                 elem,
             })));
 
-            if let Some(old) = self.front {
+            if let Some(mut old) = self.front {
                 // Put the `new` front before the `old` one
-                (*old.as_ptr()).front = Some(new);
-                (*new.as_ptr()).back = Some(old);
+                old.as_mut().front = Some(new);
+                new.as_mut().back = Some(old);
             } else {
                 // If there's no front, then we're the empty list and need to set the back too.
                 // Also here's some integrity checks for testing, in case we mess up.
@@ -62,9 +62,9 @@ impl<T> LinkedList<T> {
 
                 // Make the next node into the new front
                 self.front = boxed_node.back;
-                if let Some(new) = self.front {
+                if let Some(mut new) = self.front {
                     // cleanup it's reference to the removed node
-                    (*new.as_ptr()).front = None;
+                    new.as_mut().front = None;
                 } else {
                     // If the front is now null, then this list must be empty
                     self.back = None;
@@ -81,15 +81,15 @@ impl<T> LinkedList<T> {
     pub fn push_back(&mut self, elem: T) {
         // SAFETY: it's a linked-list, what do you want?
         unsafe {
-            let new = NonNull::new_unchecked(Box::into_raw(Box::new(Node {
+            let mut new = NonNull::new_unchecked(Box::into_raw(Box::new(Node {
                 back: None,
                 front: None,
                 elem,
             })));
-            if let Some(old) = self.back {
+            if let Some(mut old) = self.back {
                 // Put the new back before the old one
-                (*old.as_ptr()).back = Some(new);
-                (*new.as_ptr()).front = Some(old);
+                old.as_mut().back = Some(new);
+                new.as_mut().front = Some(old);
             } else {
                 // If there's no back, then we're the empty list and need
                 // to set the front too.
@@ -112,9 +112,9 @@ impl<T> LinkedList<T> {
 
                 // Make the next node into the new back.
                 self.back = boxed_node.front;
-                if let Some(new) = self.back {
+                if let Some(mut new) = self.back {
                     // Cleanup its reference to the removed node
-                    (*new.as_ptr()).back = None;
+                    new.as_mut().back = None;
                 } else {
                     // If the back is now null, then this list is now empty!
                     self.front = None;
@@ -128,18 +128,18 @@ impl<T> LinkedList<T> {
     }
 
     pub fn front(&self) -> Option<&T> {
-        unsafe { self.front.map(|node| &(*node.as_ptr()).elem) }
+        unsafe { self.front.map(|node| &node.as_ref().elem) }
     }
 
     pub fn front_mut(&mut self) -> Option<&mut T> {
-        unsafe { self.front.map(|node| &mut (*node.as_ptr()).elem) }
+        unsafe { self.front.map(|mut node| &mut node.as_mut().elem) }
     }
 
     pub fn back(&self) -> Option<&T> {
-        unsafe { self.back.map(|node| &(*node.as_ptr()).elem) }
+        unsafe { self.back.map(|node| &node.as_ref().elem) }
     }
     pub fn back_mut(&mut self) -> Option<&mut T> {
-        unsafe { self.back.map(|node| &mut (*node.as_ptr()).elem) }
+        unsafe { self.back.map(|mut node| &mut node.as_mut().elem) }
     }
 
     pub fn len(&self) -> usize {
@@ -184,13 +184,13 @@ impl<T> LinkedList<T> {
         let node = node.as_mut();
 
         match node.front {
-            Some(prev) => (*prev.as_ptr()).back = node.back,
+            Some(mut prev) => prev.as_mut().back = node.back,
             // This node is at the start
             None => self.front = node.back,
         }
 
         match node.back {
-            Some(next) => (*next.as_ptr()).front = node.front,
+            Some(mut next) => next.as_mut().front = node.front,
             // This node is at the end
             None => self.back = node.front,
         }
@@ -296,8 +296,8 @@ impl<'a, T> Iterator for Iter<'a, T> {
         if self.len > 0 {
             self.front.map(|node| unsafe {
                 self.len -= 1;
-                self.front = (*node.as_ptr()).back;
-                &(*node.as_ptr()).elem
+                self.front = node.as_ref().back;
+                &node.as_ref().elem
             })
         } else {
             None
@@ -314,8 +314,8 @@ impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
         if self.len > 0 {
             self.back.map(|node| unsafe {
                 self.len -= 1;
-                self.back = (*node.as_ptr()).front;
-                &(*node.as_ptr()).elem
+                self.back = node.as_ref().front;
+                &node.as_ref().elem
             })
         } else {
             None
@@ -387,10 +387,10 @@ impl<'a, T> Iterator for IterMut<'a, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.len > 0 {
-            self.front.map(|node| unsafe {
+            self.front.map(|mut node| unsafe {
                 self.len -= 1;
-                self.front = (*node.as_ptr()).back;
-                &mut (*node.as_ptr()).elem
+                self.front = node.as_ref().back;
+                &mut node.as_mut().elem
             })
         } else {
             None
@@ -405,10 +405,10 @@ impl<'a, T> Iterator for IterMut<'a, T> {
 impl<'a, T> DoubleEndedIterator for IterMut<'a, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.len > 0 {
-            self.back.map(|node| unsafe {
+            self.back.map(|mut node| unsafe {
                 self.len -= 1;
-                self.back = (*node.as_ptr()).front;
-                &mut (*node.as_ptr()).elem
+                self.back = node.as_ref().front;
+                &mut node.as_mut().elem
             })
         } else {
             None
@@ -437,7 +437,7 @@ impl<'a, T> CursorMut<'a, T> {
         if let Some(cur) = self.cur {
             unsafe {
                 // we're on a real element, go to it's next (back)
-                self.cur = (*cur.as_ptr()).back;
+                self.cur = cur.as_ref().back;
                 if self.cur.is_some() {
                     // This is infallible but writing idiomatically
                     if let Some(idx) = self.index.as_mut() {
@@ -463,7 +463,7 @@ impl<'a, T> CursorMut<'a, T> {
         if let Some(cur) = self.cur {
             unsafe {
                 // We're on a element, go to it's previous node
-                self.cur = (*cur.as_ptr()).front;
+                self.cur = cur.as_ref().front;
                 if self.cur.is_some() {
                     // This is infallible but writing idiomatically
                     if let Some(idx) = self.index.as_mut() {
@@ -485,30 +485,30 @@ impl<'a, T> CursorMut<'a, T> {
     }
 
     pub fn current(&mut self) -> Option<&mut T> {
-        unsafe { self.cur.map(|node| &mut (*node.as_ptr()).elem) }
+        unsafe { self.cur.map(|mut node| &mut node.as_mut().elem) }
     }
 
     pub fn peek_next(&mut self) -> Option<&mut T> {
         unsafe {
             let next = if let Some(cur) = self.cur {
-                (*cur.as_ptr()).back
+                cur.as_ref().back
             } else {
                 self.list.front
             };
 
-            next.map(|node| &mut (*node.as_ptr()).elem)
+            next.map(|mut node| &mut node.as_mut().elem)
         }
     }
 
     pub fn peek_prev(&mut self) -> Option<&mut T> {
         unsafe {
             let prev = if let Some(cur) = self.cur {
-                (*cur.as_ptr()).front
+                cur.as_ref().front
             } else {
                 self.list.back
             };
 
-            prev.map(|node| &mut (*node.as_ptr()).elem)
+            prev.map(|mut node| &mut node.as_mut().elem)
         }
     }
 
@@ -531,13 +531,13 @@ impl<'a, T> CursorMut<'a, T> {
         //
         //    return.front -> A <-> B <- return.back
         //
-        if let Some(cur) = self.cur {
+        if let Some(mut cur) = self.cur {
             // The list is non-empty and we're pointing to an actual element
             unsafe {
                 // Current state
                 let old_len = self.list.len;
                 let old_idx = self.index.unwrap();
-                let prev = (*cur.as_ptr()).front;
+                let prev = cur.as_ref().front;
 
                 // What self will become
                 let new_len = old_len - old_idx;
@@ -551,9 +551,9 @@ impl<'a, T> CursorMut<'a, T> {
                 let output_back = prev;
 
                 // Break the links between cur and prev
-                if let Some(prev) = prev {
-                    (*cur.as_ptr()).front = None;
-                    (*prev.as_ptr()).back = None;
+                if let Some(mut prev) = prev {
+                    cur.as_mut().front = None;
+                    prev.as_mut().back = None;
                 }
 
                 // Produce the new result
@@ -595,13 +595,13 @@ impl<'a, T> CursorMut<'a, T> {
         //
         //    return.front -> C <-> D <- return.back
         //
-        if let Some(cur) = self.cur {
+        if let Some(mut cur) = self.cur {
             // The list is non-empty and we're pointing to an actual element
             unsafe {
                 // Current state
                 let old_len = self.list.len;
                 let old_idx = self.index.unwrap();
-                let next = (*cur.as_ptr()).back;
+                let next = cur.as_ref().back;
 
                 // What self will become
                 let new_len = old_idx + 1;
@@ -614,9 +614,9 @@ impl<'a, T> CursorMut<'a, T> {
                 let output_back = self.list.back;
 
                 // Break the links between cur and prev
-                if let Some(next) = next {
-                    (*cur.as_ptr()).back = None;
-                    (*next.as_ptr()).front = None;
+                if let Some(mut next) = next {
+                    cur.as_mut().back = None;
+                    next.as_mut().front = None;
                 }
 
                 // Produce the new result
@@ -656,46 +656,46 @@ impl<'a, T> CursorMut<'a, T> {
         //                                 ^
         //                                cur
         //
+        if input.is_empty() {
+            // do nothing
+            return;
+        }
+
         unsafe {
-            if input.is_empty() {
-                // do nothing
-                return;
-            }
-
-            if let Some(cur) = self.cur {
+            if let Some(mut cur) = self.cur {
                 // We're pointing to an element and both lists are non-empty
-                let in_front = input.front.take().unwrap();
-                let in_back = input.back.take().unwrap();
+                let mut in_front = input.front.take().unwrap();
+                let mut in_back = input.back.take().unwrap();
 
-                if let Some(prev) = (*cur.as_ptr()).front {
+                if let Some(mut prev) = cur.as_ref().front {
                     // General case, no boundaries.
                     // We're in the middle of the list
 
                     // This basically creates a break between current and previous node
                     // Connect previous node's back to the front of the input list
-                    (*prev.as_ptr()).back = Some(in_front);
-                    (*in_front.as_ptr()).front = Some(prev);
+                    prev.as_mut().back = Some(in_front);
+                    in_front.as_mut().front = Some(prev);
 
                     // Connect current node's front to the back of the input list
-                    (*cur.as_ptr()).front = Some(in_back);
-                    (*in_back.as_ptr()).back = Some(cur);
+                    cur.as_mut().front = Some(in_back);
+                    in_back.as_mut().back = Some(cur);
                 } else {
                     // We're at the start[Some(0)], so we append to the front
-                    (*cur.as_ptr()).front = Some(in_back);
-                    (*in_back.as_ptr()).back = Some(cur);
+                    cur.as_mut().front = Some(in_back);
+                    in_back.as_mut().back = Some(cur);
                     self.list.front = Some(in_front);
                 }
                 // Index moves forward by input length
                 *self.index.as_mut().unwrap() += input.len;
-            } else if let Some(back) = self.list.back {
+            } else if let Some(mut back) = self.list.back {
                 // We're pointing to the ghost and the list is non-empty
                 // Here, we append to the back
-                let in_front = input.front.take().unwrap();
+                let mut in_front = input.front.take().unwrap();
                 let in_back = input.back.take().unwrap();
 
                 // Connect the back of out list to the front on the input list
-                (*back.as_ptr()).back = Some(in_front);
-                (*in_front.as_ptr()).front = Some(back);
+                back.as_mut().back = Some(in_front);
+                in_front.as_mut().front = Some(back);
 
                 self.list.back = Some(in_back);
             } else {
@@ -731,31 +731,31 @@ impl<'a, T> CursorMut<'a, T> {
         }
 
         unsafe {
-            if let Some(cur) = self.cur {
-                let in_front = input.front.take().unwrap();
-                let in_back = input.back.take().unwrap();
+            if let Some(mut cur) = self.cur {
+                let mut in_front = input.front.take().unwrap();
+                let mut in_back = input.back.take().unwrap();
 
-                if let Some(next) = (*cur.as_ptr()).back {
-                    (*next.as_ptr()).front = Some(in_back);
-                    (*in_back.as_ptr()).back = Some(next);
+                if let Some(mut next) = cur.as_ref().back {
+                    next.as_mut().front = Some(in_back);
+                    in_back.as_mut().back = Some(next);
 
-                    (*cur.as_ptr()).back = Some(in_front);
-                    (*in_front.as_ptr()).front = Some(cur);
+                    cur.as_mut().back = Some(in_front);
+                    in_front.as_mut().front = Some(cur);
                 } else {
                     // We're at the end of the list, so we append to the back
-                    (*cur.as_ptr()).back = Some(in_front);
-                    (*in_front.as_ptr()).front = Some(cur);
+                    cur.as_mut().back = Some(in_front);
+                    in_front.as_mut().front = Some(cur);
                     self.list.back = Some(in_back);
                 }
                 // No need to move the index
-            } else if let Some(front) = self.list.front {
+            } else if let Some(mut front) = self.list.front {
                 // We're pointing to the ghost and the list is non-empty
                 // Here, we append to the front
-                let in_front = input.front.take().unwrap();
+                let mut in_front = input.front.take().unwrap();
                 let in_back = input.back.take().unwrap();
 
-                (*front.as_ptr()).front = Some(in_back);
-                (*in_front.as_ptr()).back = Some(front);
+                front.as_mut().front = Some(in_back);
+                in_front.as_mut().back = Some(front);
                 self.list.front = Some(in_front);
             } else {
                 // We're empty, become the input, remain on the ghost
@@ -1176,7 +1176,7 @@ mod test {
         assert_eq!(cursor.remove_current(), Some(10));
         check_links(&m);
         assert_eq!(
-            m.iter().cloned().collect::<Vec<_>>(),
+            m.iter().copied().collect::<Vec<_>>(),
             &[1, 8, 2, 3, 4, 5, 6]
         );
 
